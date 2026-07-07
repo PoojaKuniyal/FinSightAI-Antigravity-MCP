@@ -195,34 +195,91 @@ function stopTyping() {
   pipelineSteps.forEach(s => s.classList.remove('active'));
 }
 
-// ── Agent badge updates ───────────────────────────────────────────────────────
+// ── Agent execution path ─────────────────────────────────────────────────────
 
-function updateBadges(responseText) {
-  // Parse what we can from the response (heuristic)
-  const text = responseText.toLowerCase();
+/**
+ * Maps an agent name (as returned by the server) to its CSS class and emoji.
+ * The server sends the canonical names defined in _build_execution_path().
+ */
+const AGENT_META = {
+  'Guardrail':        { cls: 'flow-guardrail', emoji: '🛡️' },
+  'Router':           { cls: 'flow-router',    emoji: '🧭' },
+  'FAQ':              { cls: 'flow-faq',        emoji: '📚' },
+  'Company Analysis': { cls: 'flow-analysis',  emoji: '📊' },
+  'Summary':          { cls: 'flow-summary',   emoji: '✨' },
+  'Blocked':          { cls: 'flow-blocked',   emoji: '🚫' },
+};
 
-  // Guardrail: always SAFE if we got a response
-  setBadge(badgeGuardrail, 'SAFE', 'safe');
+/**
+ * Append an execution-path trail below the last assistant message bubble.
+ * @param {string[]} path  e.g. ["Guardrail","Router","FAQ","Summary"]
+ * @param {HTMLElement} msgDiv  The message wrapper div returned by appendMessage()
+ */
+function appendExecutionPath(path, msgDiv) {
+  if (!path || path.length === 0) return;
+
+  const trail = document.createElement('div');
+  trail.className = 'exec-path-trail';
+  trail.setAttribute('aria-label', 'Agent execution path: ' + path.join(' → '));
+
+  path.forEach((name, i) => {
+    const meta = AGENT_META[name] || { cls: '', emoji: '⚙️' };
+
+    const node = document.createElement('span');
+    node.className = `exec-path-node ${meta.cls}`;
+    node.title = name;
+    node.textContent = `${meta.emoji} ${name}`;
+    trail.appendChild(node);
+
+    if (i < path.length - 1) {
+      const sep = document.createElement('span');
+      sep.className = 'exec-path-sep';
+      sep.setAttribute('aria-hidden', 'true');
+      sep.textContent = '→';
+      trail.appendChild(sep);
+    }
+  });
+
+  // Insert trail into the message-content div (after the bubble)
+  const contentDiv = msgDiv.querySelector('.message-content');
+  if (contentDiv) contentDiv.appendChild(trail);
+}
+
+/**
+ * Update sidebar agent badges from the authoritative execution_path array.
+ * @param {string[]} path
+ */
+function updateBadges(path) {
+  // Reset all badges first
+  const allBadges = [badgeGuardrail, badgeRouter, badgeFaq, badgeAnalysis, badgeSummary];
+  allBadges.forEach(b => { b.textContent = '—'; b.className = 'agent-badge'; });
+
+  if (!path || path.length === 0) return;
+
+  const pathSet = new Set(path);
+
+  // Guardrail always in the path
+  if (pathSet.has('Guardrail')) {
+    const isBlocked = pathSet.has('Blocked');
+    setBadge(badgeGuardrail, isBlocked ? 'BLOCKED' : 'SAFE', isBlocked ? 'blocked' : 'safe');
+  }
 
   // Router
-  if (text.includes('not financial advice') && text.includes('eps') || text.includes('p/e') || text.includes('ebitda')) {
-    setBadge(badgeRouter, 'FAQ', 'active');
-    setBadge(badgeFaq, '✓', 'safe');
-    setBadge(badgeAnalysis, '—', '');
-  } else if (text.includes('stock price') || text.includes('revenue') || text.includes('income statement') || text.includes('balance sheet')) {
-    setBadge(badgeRouter, 'ANALYSIS', 'active');
-    setBadge(badgeFaq, '—', '');
-    setBadge(badgeAnalysis, '✓', 'safe');
-  } else if (text.includes('outside my area') || text.includes('specialises in')) {
-    setBadge(badgeRouter, 'OFF_TOPIC', '');
-    setBadge(badgeFaq, '—', '');
-    setBadge(badgeAnalysis, '—', '');
-  } else {
-    setBadge(badgeRouter, '✓', 'active');
-    setBadge(badgeFaq, '—', '');
-    setBadge(badgeAnalysis, '—', '');
+  if (pathSet.has('Router')) {
+    let routeLabel = '✓';
+    if (pathSet.has('FAQ')) routeLabel = 'FAQ';
+    else if (pathSet.has('Company Analysis')) routeLabel = 'ANALYSIS';
+    else if (!pathSet.has('Summary')) routeLabel = 'OFF_TOPIC';
+    setBadge(badgeRouter, routeLabel, 'active');
   }
-  setBadge(badgeSummary, '✓', 'safe');
+
+  // Specialist agents
+  setBadge(badgeFaq,      pathSet.has('FAQ')              ? '✓' : '—', pathSet.has('FAQ')              ? 'safe' : '');
+  setBadge(badgeAnalysis, pathSet.has('Company Analysis') ? '✓' : '—', pathSet.has('Company Analysis') ? 'safe' : '');
+
+  // Summary
+  if (pathSet.has('Summary')) setBadge(badgeSummary, '✓', 'safe');
+  else if (pathSet.has('Blocked')) setBadge(badgeSummary, '—', '');
 }
 
 function setBadge(el, text, cls) {
@@ -270,8 +327,11 @@ async function sendMessage(message) {
     }
 
     stopTyping();
-    appendMessage('assistant', data.response);
-    updateBadges(data.response);
+    const msgDiv = appendMessage('assistant', data.response);
+    if (data.execution_path) {
+      appendExecutionPath(data.execution_path, msgDiv);
+      updateBadges(data.execution_path);
+    }
 
   } catch (err) {
     stopTyping();
@@ -298,6 +358,8 @@ async function clearConversation() {
     // Reset badges
     [badgeGuardrail, badgeRouter, badgeFaq, badgeAnalysis, badgeSummary]
       .forEach(b => { b.textContent = '—'; b.className = 'agent-badge'; });
+    // Also remove any exec-path trails from cleared messages
+    document.querySelectorAll('.exec-path-trail').forEach(el => el.remove());
     showToast('Conversation cleared.', 'success');
   } catch (err) {
     showToast('Failed to clear conversation.', 'error');

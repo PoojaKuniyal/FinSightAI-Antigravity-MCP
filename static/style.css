@@ -686,6 +686,59 @@ body {
   gap: 4px;
 }
 
+/* Blocked node variant */
+.flow-blocked {
+  background: rgba(239, 68, 68, .15);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, .2);
+}
+
+/* ── Execution path trail (under each assistant message) ─────────────────── */
+.exec-path-trail {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: rgba(14, 20, 32, .7);
+  border: 1px solid var(--clr-border-2);
+  border-radius: var(--radius-sm);
+  animation: fadeSlideIn .4s ease;
+}
+
+.exec-path-trail::before {
+  content: 'Path:';
+  font-size: .6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--clr-text-dim);
+  margin-right: 2px;
+  flex-shrink: 0;
+}
+
+.exec-path-node {
+  font-size: .67rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+  cursor: default;
+  transition: transform .15s, box-shadow .15s;
+}
+
+.exec-path-node:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .3);
+}
+
+.exec-path-sep {
+  color: var(--clr-text-dim);
+  font-size: .65rem;
+  flex-shrink: 0;
+}
+
 /* Timestamp */
 .message-time {
   font-size: .65rem;

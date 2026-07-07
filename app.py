@@ -78,9 +78,39 @@ def _get_or_create_session_id() -> str:
     return session["session_id"]
 
 
-async def _run_pipeline(session_id: str, user_message: str) -> str:
+def _build_execution_path(state: dict) -> list[str]:
     """
-    Run the ADK SequentialAgent pipeline and return the final response text.
+    Derive the ordered list of agent names that actually executed for this
+    query, based on session state keys written by each agent.
+
+    Possible paths:
+      BLOCKED  : ["Guardrail", "Blocked"]
+      FAQ      : ["Guardrail", "Router", "FAQ", "Summary"]
+      ANALYSIS : ["Guardrail", "Router", "Company Analysis", "Summary"]
+      OFF_TOPIC: ["Guardrail", "Router", "Summary"]
+      (fallback): ["Guardrail", "Router", "Summary"]
+    """
+    guardrail = state.get("guardrail_result", "").strip().upper()
+    route = state.get("route_decision", "").strip().upper()
+
+    if guardrail == "BLOCKED" or route == "BLOCKED":
+        return ["Guardrail", "Blocked"]
+
+    path = ["Guardrail", "Router"]
+
+    if route == "FAQ":
+        path.append("FAQ")
+    elif route == "ANALYSIS":
+        path.append("Company Analysis")
+    # OFF_TOPIC goes straight to Summary (no specialist agent)
+
+    path.append("Summary")
+    return path
+
+
+async def _run_pipeline(session_id: str, user_message: str) -> tuple[str, list[str]]:
+    """
+    Run the ADK SequentialAgent pipeline and return (response_text, execution_path).
     Creates or reuses an ADK session keyed by the Flask session ID.
 
     IMPORTANT: SequentialAgent emits a final_response event for EACH sub-agent.
@@ -122,20 +152,25 @@ async def _run_pipeline(session_id: str, user_message: str) -> str:
                     )
                     final_text = candidate  # keep overwriting — last non-empty wins
 
+    # Read session state to derive execution path and fallback response
+    refreshed = await _session_service.get_session(
+        app_name=_APP_NAME, user_id="user", session_id=session_id
+    )
+    state = refreshed.state if (refreshed and refreshed.state) else {}
+
     # Fallback: read final_response from session state (set by SummaryAgent output_key)
     if not final_text:
-        refreshed = await _session_service.get_session(
-            app_name=_APP_NAME, user_id="user", session_id=session_id
-        )
-        if refreshed and refreshed.state:
-            final_text = refreshed.state.get("final_response", "")
-            if final_text:
-                log.debug("Used session state fallback for final_response")
+        final_text = state.get("final_response", "")
+        if final_text:
+            log.debug("Used session state fallback for final_response")
 
     if not final_text:
         final_text = "I was unable to generate a response. Please try again."
 
-    return final_text
+    execution_path = _build_execution_path(state)
+    log.debug("Execution path: %s", " → ".join(execution_path))
+
+    return final_text, execution_path
 
 
 
@@ -160,7 +195,7 @@ def chat():
 
     try:
         # Run the async ADK pipeline in a synchronous context
-        response_text = asyncio.run(_run_pipeline(session_id, user_message))
+        response_text, execution_path = asyncio.run(_run_pipeline(session_id, user_message))
     except Exception as exc:
         log.exception("Pipeline error for session %s", session_id)
         return jsonify({"error": f"Pipeline error: {str(exc)}"}), 500
@@ -172,6 +207,7 @@ def chat():
     return jsonify({
         "session_id": session_id,
         "response": response_text,
+        "execution_path": execution_path,
     })
 
 
