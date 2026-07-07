@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FinSight AI – Multi-Agent Equity Research Assistant</title>
+  <meta name="description" content="FinSight AI is a multi-agent equity research assistant powered by Google ADK 2.0. Get factual stock analysis and financial education — not investment advice." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+  <!-- ── Animated Background ── -->
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-1" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-2" aria-hidden="true"></div>
+
+  <!-- ── App Shell ── -->
+  <div class="app-shell">
+
+    <!-- ── Sidebar ── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <div class="logo-icon" aria-hidden="true">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <rect width="28" height="28" rx="8" fill="url(#logoGrad)"/>
+              <polyline points="4,20 10,12 15,16 22,7" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <circle cx="22" cy="7" r="2.5" fill="white"/>
+              <defs>
+                <linearGradient id="logoGrad" x1="0" y1="0" x2="28" y2="28">
+                  <stop offset="0%" stop-color="#6366f1"/>
+                  <stop offset="100%" stop-color="#0ea5e9"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <div class="logo-text">
+            <span class="logo-name">FinSight AI</span>
+            <span class="logo-sub">Equity Research</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <p class="sidebar-label">Agents Active</p>
+        <ul class="agent-list" id="agent-list">
+          <li class="agent-item" data-agent="guardrail">
+            <span class="agent-dot" style="background:#ef4444"></span>
+            <span>Guardrail</span>
+            <span class="agent-badge" id="badge-guardrail">—</span>
+          </li>
+          <li class="agent-item" data-agent="router">
+            <span class="agent-dot" style="background:#f59e0b"></span>
+            <span>Router</span>
+            <span class="agent-badge" id="badge-router">—</span>
+          </li>
+          <li class="agent-item" data-agent="faq">
+            <span class="agent-dot" style="background:#10b981"></span>
+            <span>FAQ</span>
+            <span class="agent-badge" id="badge-faq">—</span>
+          </li>
+          <li class="agent-item" data-agent="analysis">
+            <span class="agent-dot" style="background:#6366f1"></span>
+            <span>Analysis</span>
+            <span class="agent-badge" id="badge-analysis">—</span>
+          </li>
+          <li class="agent-item" data-agent="summary">
+            <span class="agent-dot" style="background:#0ea5e9"></span>
+            <span>Summary</span>
+            <span class="agent-badge" id="badge-summary">—</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="sidebar-section">
+        <p class="sidebar-label">Quick Queries</p>
+        <div class="quick-queries">
+          <button class="quick-btn" id="q1" data-query="What is the P/E ratio and why does it matter?">
+            📚 What is P/E ratio?
+          </button>
+          <button class="quick-btn" id="q2" data-query="Analyse Apple (AAPL) stock">
+            🍎 Analyse Apple (AAPL)
+          </button>
+          <button class="quick-btn" id="q3" data-query="Explain what EBITDA means">
+            📊 Explain EBITDA
+          </button>
+          <button class="quick-btn" id="q4" data-query="Analyse Microsoft (MSFT) financials">
+            💻 Analyse Microsoft (MSFT)
+          </button>
+          <button class="quick-btn" id="q5" data-query="What is Return on Equity (ROE)?">
+            📈 What is ROE?
+          </button>
+          <button class="quick-btn" id="q6" data-query="Analyse Tesla (TSLA) stock performance">
+            ⚡ Analyse Tesla (TSLA)
+          </button>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="redis-status" id="redis-status">
+          <span class="redis-dot" id="redis-dot"></span>
+          <span id="redis-label">Checking…</span>
+        </div>
+        <button class="clear-btn" id="clear-btn" title="Clear conversation">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          Clear chat
+        </button>
+      </div>
+    </aside>
+
+    <!-- ── Main chat area ── -->
+    <main class="main">
+
+      <!-- Header -->
+      <header class="main-header">
+        <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div class="header-title">
+          <h1>FinSight AI</h1>
+          <span class="header-sub">Multi-Agent Equity Research · Powered by Google ADK 2.0</span>
+        </div>
+        <div class="header-pills">
+          <span class="pill pill-green">● Live</span>
+          <span class="pill pill-blue">5 Agents</span>
+        </div>
+      </header>
+
+      <!-- Messages -->
+      <div class="messages-container" id="messages-container" role="log" aria-live="polite" aria-label="Chat messages">
+
+        <!-- Welcome message -->
+        <div class="message message-assistant welcome-message" id="welcome-msg">
+          <div class="message-avatar" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 28 28" fill="none">
+              <polyline points="4,20 10,12 15,16 22,7" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <circle cx="22" cy="7" r="2.5" fill="white"/>
+            </svg>
+          </div>
+          <div class="message-content">
+            <div class="message-bubble">
+              <h2 class="welcome-title">Welcome to FinSight AI 👋</h2>
+              <p>I'm a <strong>multi-agent equity research assistant</strong> powered by <em>Google ADK 2.0</em>. I use five specialised AI agents to deliver factual financial analysis:</p>
+              <div class="agent-flow-visual" aria-label="Agent pipeline: Guardrail → Router → FAQ or Analysis → Summary">
+                <div class="flow-node flow-guardrail">🛡️ Guardrail</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-node flow-router">🧭 Router</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-branch">
+                  <div class="flow-node flow-faq">📚 FAQ</div>
+                  <div class="flow-node flow-analysis">📊 Analysis</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-node flow-summary">✨ Summary</div>
+              </div>
+              <p class="welcome-examples">Try asking:</p>
+              <ul class="welcome-list">
+                <li><strong>"Analyse Apple (AAPL) stock"</strong> — live data from Alpha Vantage & Financial Datasets</li>
+                <li><strong>"What is the P/E ratio?"</strong> — finance concept education</li>
+                <li><strong>"Explain EBITDA"</strong> — plain-language explanations</li>
+              </ul>
+              <p class="disclaimer-inline">⚠️ For educational purposes only. Not financial advice.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Typing indicator (hidden by default) -->
+      <div class="typing-indicator" id="typing-indicator" aria-hidden="true" hidden>
+        <div class="typing-avatar" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 28 28" fill="none">
+            <polyline points="4,20 10,12 15,16 22,7" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="22" cy="7" r="2.5" fill="white"/>
+          </svg>
+        </div>
+        <div class="typing-pipeline" id="typing-pipeline">
+          <span class="typing-step active" id="step-guardrail">🛡️ Guardrail</span>
+          <span class="typing-sep">→</span>
+          <span class="typing-step" id="step-router">🧭 Router</span>
+          <span class="typing-sep">→</span>
+          <span class="typing-step" id="step-agent">📊 Agent</span>
+          <span class="typing-sep">→</span>
+          <span class="typing-step" id="step-summary">✨ Summary</span>
+        </div>
+        <div class="typing-dots" aria-label="Processing…">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+
+      <!-- Input area -->
+      <div class="input-area">
+        <form class="input-form" id="chat-form" autocomplete="off">
+          <div class="input-wrapper">
+            <textarea
+              id="user-input"
+              class="chat-input"
+              placeholder="Ask about a company, stock, or finance concept…"
+              rows="1"
+              aria-label="Your message"
+              maxlength="2000"
+            ></textarea>
+            <div class="input-actions">
+              <span class="char-count" id="char-count">0/2000</span>
+              <button type="submit" class="send-btn" id="send-btn" aria-label="Send message" disabled>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
+            </div>
+          </div>
+          <p class="input-hint">Press <kbd>Enter</kbd> to send · <kbd>Shift+Enter</kbd> for new line · For educational use only</p>
+        </form>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Toast notifications -->
+  <div class="toast-container" id="toast-container" aria-live="assertive" aria-atomic="true"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

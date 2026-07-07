@@ -1,0 +1,47 @@
+{
+  "mcpServers": {
+    "alphavantage": {
+      "transport": "streamable-http",
+      "url": "https://mcp.alphavantage.co/mcp",
+      "description": "Alpha Vantage official remote MCP server. Provides real-time stock prices, company overview, income statements, balance sheets, and cash flow data.",
+      "auth": {
+        "type": "query_param",
+        "param": "apikey",
+        "value_env": "ALPHA_VANTAGE"
+      },
+      "notes": [
+        "API key is read from the ALPHA_VANTAGE environment variable defined in .env.",
+        "The key is appended as ?apikey=<value> at runtime — never hardcoded here.",
+        "Made available to: AnalysisAgent (finsight/agents/analysis_agent.py)"
+      ]
+    },
+    "financialdatasets": {
+      "transport": "streamable-http",
+      "url": "https://mcp.financialdatasets.ai/",
+      "description": "Financial Datasets official remote MCP server. Exposes financial statement tools: income statements, balance sheets, cash flow statements, key metrics, and earnings data.",
+      "tools": [
+        "get_income_statements",
+        "get_balance_sheets",
+        "get_cash_flow_statements",
+        "get_financial_metrics",
+        "get_earnings"
+      ],
+      "auth": {
+        "type": "header",
+        "header": "X-API-KEY",
+        "value_env": "FINANCIAL_DATASET"
+      },
+      "notes": [
+        "API key is read from the FINANCIAL_DATASET environment variable defined in .env.",
+        "The key is sent as X-API-KEY HTTP header at runtime — never hardcoded here.",
+        "Made available to: AnalysisAgent (finsight/agents/analysis_agent.py)"
+      ]
+    }
+  },
+  "agentBindings": {
+    "AnalysisAgent": [
+      "alphavantage",
+      "financialdatasets"
+    ]
+  }
+}
