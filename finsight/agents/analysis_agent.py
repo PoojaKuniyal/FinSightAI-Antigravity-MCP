@@ -83,7 +83,8 @@ def _run_only_for_analysis(callback_context: CallbackContext) -> Optional[types.
 
 
 # ── MCP Toolsets ─────────────────────────────────────────────────────────────
-# Built at module load time; the toolset manages its own subprocess lifecycle.
+# McpToolset defers the actual MCP session until the agent first needs tools,
+# so it is safe to instantiate these at module level.
 _alpha_vantage_tools = build_alpha_vantage_toolset()
 _financial_dataset_tools = build_financial_dataset_toolset()
 

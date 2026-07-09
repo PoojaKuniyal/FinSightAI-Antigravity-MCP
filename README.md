@@ -1,6 +1,6 @@
 ﻿# FinSight AI 📊
 
-> **Multi-Agent Equity Research Assistant** — powered by Google ADK & Gemini  
+> **Multi-Agent Equity Research Assistant** — Built with Google ADK, Gemini & MCP
 > _For informational purposes only. Not investment advice._
 
 ![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)
@@ -11,104 +11,140 @@
 
 ---
 
+## Demo
+
+> **[▶ Watch the full demo on Vimeo](https://vimeo.com/1208444587?fl=ip&fe=ec)**
+
+---
+
 ## Overview
 
-FinSight AI is a **five-agent equity research pipeline** that answers financial questions and delivers company-level stock analysis in plain language. It uses Google's [Agent Development Kit (ADK)](https://google.github.io/adk-docs/) to orchestrate specialised LLM agents through a sequential graph, with real-time market data sourced via two remote MCP servers.
+### The Problem
+
+Getting meaningful financial insight on a company usually means juggling multiple tools — a stock screener here, a financial statements viewer there, and then manually synthesising everything into a coherent picture. This is time-consuming, error-prone, and inaccessible to people without a finance background.
+
+### What FinSight AI Does
+
+FinSight AI is a **five-agent equity research pipeline** that answers financial questions and delivers company-level stock analysis in plain language. It uses Google''s [Agent Development Kit (ADK)](https://google.github.io/adk-docs/) to orchestrate specialised LLM agents through a sequential pipeline, with real-time market data sourced via two remote MCP servers.
+
+Instead of querying multiple APIs and interpreting raw numbers yourself, you ask a question in plain English — and FinSight AI handles safety checks, intent routing, live data retrieval, and report generation automatically.
 
 **Key capabilities:**
 
-- 🛡️ **Prompt safety** — every query passes through a guardrail before any agent processes it
-- 🧭 **Smart routing** — intent is classified as FAQ, Company Analysis, or Off-Topic
-- 📚 **Finance FAQ** — plain-language explanations of financial concepts (P/E, EBITDA, ROE …)
-- 📊 **Live company analysis** — stock price, overview, income statement, balance sheet, cash flow
-- ✨ **Structured summaries** — a dedicated agent merges outputs into a clean, readable report
-- 💬 **Session memory** — Redis-backed conversation history (in-memory fallback when Redis is unavailable)
+- Shield **Prompt safety** — every query passes through a guardrail before any agent processes it
+- **Smart routing** — intent is classified as FAQ, Company Analysis, or Off-Topic
+- **Finance FAQ** — plain-language explanations of financial concepts (P/E, EBITDA, ROE ...)
+- **Live company analysis** — stock price, overview, income statement, balance sheet, cash flow
+- **Structured summaries** — a dedicated agent merges outputs into a clean, readable report
+- **Session memory** — Redis-backed conversation history (in-memory fallback when Redis is unavailable)
+
+---
+## Spec-Driven Development
+
+This project was built spec-first. Before any code was written, the following specification files defined the architecture, agent responsibilities, and behaviour:
+
+| Spec File | Purpose |
+|-----------|---------|
+| [`architecture.md`](architecture.md) | Tech stack decisions — ADK, Flask, Redis, Alpha Vantage MCP, Financial Datasets MCP |
+| [`workflow.md`](workflow.md) | End-to-end agent flow for each intent type (FAQ, Analysis, Off-Topic) |
+| [`requirements.md`](requirements.md) | Per-agent responsibilities, guardrail detection rules, data fields, and caching policy |
+| [`prompts/guardrail.md`](prompts/guardrail.md) | System prompt for the Guardrail Agent |
+| [`prompts/router.md`](prompts/router.md) | System prompt for the Router Agent |
+| [`prompts/faq.md`](prompts/faq.md) | System prompt for the FAQ Agent |
+| [`prompts/analysis.md`](prompts/analysis.md) | System prompt for the Company Analysis Agent |
+| [`prompts/summary.md`](prompts/summary.md) | System prompt for the Summary Agent |
+
+The implementation follows these specs directly — each agent has a single responsibility as required, the pipeline matches the workflow exactly, and all prompt behaviours are defined in the `prompts/` directory rather than hardcoded in Python.
 
 ---
 
 ## Agent Workflow
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        FinSight AI Pipeline                     │
-│                     (ADK SequentialAgent)                       │
-└─────────────────────────────────────────────────────────────────┘
++---------------------------------------------------------------------+
+|                        FinSight AI Pipeline                         |
+|                     (ADK SequentialAgent)                           |
++---------------------------------------------------------------------+
 
   User Query
-      │
-      ▼
-┌─────────────┐   BLOCKED ──────────────────────────────────────┐
-│  🛡️ Node 1   │                                                 │
-│  Guardrail  │ Classifies input as SAFE or BLOCKED             │
-│   Agent     │ Catches: prompt injection, jailbreaks,          │
-└──────┬──────┘ harmful / off-policy content                     │
-       │ SAFE                                                    │
-       ▼                                                         │
-┌─────────────┐                                                  │
-│  🧭 Node 2   │ Classifies intent:                              │
-│   Router    │   FAQ        → finance concept question          │
-│   Agent     │   ANALYSIS   → company / ticker query           │
-└──────┬──────┘   OFF_TOPIC  → not finance-related              │
-       │                                                         │
-       ├─── FAQ ──────────────────────┐                         │
-       │                              ▼                         │
-       │                     ┌─────────────────┐                │
-       │                     │   📚 Node 3a     │                │
-       │                     │   FAQ Agent      │                │
-       │                     │                  │                │
-       │                     │ Answers general  │                │
-       │                     │ finance concepts │                │
-       │                     └────────┬────────┘                │
-       │                              │                         │
-       ├─── ANALYSIS ─────────────────┤                         │
-       │                              │                         │
-       │              ┌───────────────┘                         │
-       │              │                                         │
-       │              ▼                                         │
-       │     ┌─────────────────┐   MCP Servers                  │
-       │     │   📊 Node 3b     │◄──────────────────────────┐   │
-       │     │ Company Analysis │                            │   │
-       │     │     Agent        │  Alpha Vantage MCP         │   │
-       │     │                  │  ├─ Stock Price            │   │
-       │     │  Retrieves live  │  ├─ Company Overview       │   │
-       │     │  financial data  │  └─ Income Statement       │   │
-       │     └────────┬────────┘                             │   │
-       │              │         Financial Datasets MCP        │   │
-       │              │         ├─ Balance Sheet             │   │
-       │              │         ├─ Cash Flow Statement       │   │
-       │              │         ├─ Key Metrics               │   │
-       │              │         └─ Earnings                  │   │
-       │              │                                      │   │
-       ├─── OFF_TOPIC ────────────────────────────────┐      │   │
-       │                                              │      │   │
-       └──────────────────────────┐                   │      │   │
-                                  ▼                   │      │   │
-                         ┌─────────────────┐          │      │   │
-                         │   ✨ Node 4      │          │      │   │
-                         │ Summary Agent   │◄──────────┘      │   │
-                         │                 │◄─────────────────┘   │
-                         │ Merges outputs, │◄─────────────────────┘
-                         │ formats report, │
-                         │ appends notice  │
-                         └────────┬────────┘
-                                  │
-                                  ▼
-                         ┌─────────────────┐
-                         │  📦 Redis Cache  │
-                         │  Session Store   │
-                         └────────┬────────┘
-                                  │
-                                  ▼
-                            Final Response
-                          (streamed to UI)
+      |
+      v
++-------------+   BLOCKED ------------------------------------------------+
+|  Node 1     |                                                            |
+|  Guardrail  | Classifies input as SAFE or BLOCKED                       |
+|   Agent     | Catches: prompt injection, jailbreaks,                    |
++------+------+ harmful / off-policy content                               |
+       | SAFE                                                              |
+       v                                                                   |
++-------------+                                                            |
+|  Node 2     | Classifies intent:                                        |
+|   Router    |   FAQ        -> finance concept question                  |
+|   Agent     |   ANALYSIS   -> company / ticker query                   |
++------+------+   OFF_TOPIC  -> not finance-related                       |
+       |                                                                   |
+       +--- FAQ ----------------------+                                    |
+       |                              v                                    |
+       |                     +-----------------+                           |
+       |                     |   Node 3a        |                          |
+       |                     |   FAQ Agent      |                          |
+       |                     |                  |                          |
+       |                     | Answers general  |                          |
+       |                     | finance concepts |                          |
+       |                     +--------+--------+                           |
+       |                              |                                    |
+       +--- ANALYSIS -----------------+                                    |
+       |                              |                                    |
+       |              +---------------+                                    |
+       |              |                                                    |
+       |              v                                                    |
+       |     +-----------------+   MCP Servers                            |
+       |     |   Node 3b        |<-------------------------------+        |
+       |     | Company Analysis |                                 |        |
+       |     |     Agent        |  Alpha Vantage MCP              |        |
+       |     |                  |  +- Stock Price                 |        |
+       |     |  Retrieves live  |  +- Company Overview            |        |
+       |     |  financial data  |  +- Income Statement            |        |
+       |     +--------+--------+                                  |        |
+       |              |         Financial Datasets MCP             |        |
+       |              |         +- Balance Sheet                  |        |
+       |              |         +- Cash Flow Statement            |        |
+       |              |         +- Key Metrics                    |        |
+       |              |         +- Earnings                       |        |
+       |              |                                           |        |
+       +--- OFF_TOPIC --------------------------------+           |        |
+       |                                              |           |        |
+       +------------------------------+               |           |        |
+                                      v               |           |        |
+                             +-----------------+      |           |        |
+                             |   Node 4        |      |           |        |
+                             | Summary Agent   |<------+           |        |
+                             |                 |<-----------------+        |
+                             | Merges outputs, |<---------------------------+
+                             | formats report, |
+                             | appends notice  |
+                             +--------+--------+
+                                      |
+                                      v
+                             +-----------------+
+                             |  Redis Cache     |
+                             |  Session Store   |
+                             +--------+--------+
+                                      |
+                                      v
+                                Final Response
+                              (streamed to UI)
 ```
+
+### ADK Agent Graph
+
+![FinSight AI pipeline as visualised in the ADK Web Playground — five sequential agents with McpToolset wired to the Analysis Agent](images/Agent_structure.png)
 
 ### State Flow (Session Keys)
 
 | Key | Written by | Values |
 |-----|-----------|--------|
-| `guardrail_result` | GuardrailAgent | `SAFE` \| `BLOCKED` |
-| `route_decision` | RouterAgent | `FAQ` \| `ANALYSIS` \| `OFF_TOPIC` \| `BLOCKED` |
+| `guardrail_result` | GuardrailAgent | `SAFE` or `BLOCKED` |
+| `route_decision` | RouterAgent | `FAQ`, `ANALYSIS`, `OFF_TOPIC`, or `BLOCKED` |
 | `faq_result` | FAQAgent | FAQ answer string (or `""`) |
 | `analysis_result` | CompanyAnalysisAgent | Financial report string (or `""`) |
 | `final_response` | SummaryAgent | Merged, formatted response |
@@ -133,45 +169,57 @@ FinSight AI is a **five-agent equity research pipeline** that answers financial 
 
 ```
 stock_analysis_agent/
-│
-├── app.py                     # Flask entry point & API routes
-│
-├── finsight/
-│   ├── agents/
-│   │   ├── guardrail_agent.py # Node 1 — safety check
-│   │   ├── router_agent.py    # Node 2 — intent classification
-│   │   ├── faq_agent.py       # Node 3a — finance FAQ
-│   │   ├── analysis_agent.py  # Node 3b — company analysis (MCP)
-│   │   └── summary_agent.py   # Node 4  — merge & format
-│   │
-│   ├── graph/
-│   │   └── pipeline.py        # ADK SequentialAgent assembly
-│   │
-│   ├── tools/
-│   │   └── mcp_tools.py       # Alpha Vantage & Financial Datasets toolsets
-│   │
-│   ├── redis_session.py       # Redis-backed chat history
-│   └── config.py              # Environment variable loading
-│
-├── prompts/                   # System prompt markdown files
-│   ├── guardrail.md
-│   ├── router.md
-│   ├── faq.md
-│   ├── analysis.md
-│   └── summary.md
-│
-├── templates/
-│   └── index.html             # Chat UI
-│
-├── static/
-│   ├── app.js                 # Frontend logic
-│   └── style.css              # Styling
-│
-├── tests/                     # pytest test suite
-├── .agents/
-│   └── mcp_config.json        # MCP server definitions & bindings
-├── .env.example               # Environment variable template
-└── requirements.txt
+|
++-- app.py                     # Flask entry point & API routes
+|
++-- agents/                    # ADK Web Playground entry-points
+|   +-- agent.py               # Discovered when running: adk web .
+|   +-- finsight_ai/
+|       +-- agent.py           # Discovered when running: adk web agents/
+|
++-- finsight/                  # Core application package
+|   +-- agents/
+|   |   +-- guardrail_agent.py # Node 1 -- safety check
+|   |   +-- router_agent.py    # Node 2 -- intent classification
+|   |   +-- faq_agent.py       # Node 3a -- finance FAQ
+|   |   +-- analysis_agent.py  # Node 3b -- company analysis (MCP)
+|   |   +-- summary_agent.py   # Node 4  -- merge & format
+|   |
+|   +-- graph/
+|   |   +-- pipeline.py        # ADK SequentialAgent assembly
+|   |
+|   +-- tools/
+|   |   +-- mcp_tools.py       # Alpha Vantage & Financial Datasets toolsets
+|   |
+|   +-- redis_session.py       # Redis-backed chat history
+|   +-- config.py              # Environment variable loading
+|
++-- prompts/                   # System prompt markdown files
+|   +-- guardrail.md
+|   +-- router.md
+|   +-- faq.md
+|   +-- analysis.md
+|   +-- summary.md
+|
++-- templates/
+|   +-- index.html             # Chat UI
+|
++-- static/
+|   +-- app.js                 # Frontend logic
+|   +-- style.css              # Styling
+|
++-- tests/                     # pytest test suite
+|   +-- conftest.py
+|   +-- test_guardrail_agent.py
+|   +-- test_router_agent.py
+|   +-- test_faq_agent.py
+|   +-- test_analysis_agent.py
+|   +-- test_summary_agent.py
+|
++-- .agents/
+|   +-- mcp_config.json        # MCP server definitions & bindings
++-- .env.example               # Environment variable template
++-- requirements.txt
 ```
 
 ---
@@ -252,6 +300,18 @@ python app.py
 
 Open your browser at **http://localhost:5000**
 
+#### ADK Web Playground (optional)
+
+To explore the pipeline interactively in the ADK browser UI:
+
+```bash
+# From the project root
+adk web .
+
+# Or point directly at the agents directory
+adk web agents/
+```
+
 ---
 
 ## API Reference
@@ -305,12 +365,29 @@ Test files are in `tests/` and cover each agent individually:
 
 ```
 tests/
-├── test_guardrail_agent.py
-├── test_router_agent.py
-├── test_faq_agent.py
-├── test_analysis_agent.py
-└── test_summary_agent.py
++-- conftest.py
++-- test_guardrail_agent.py
++-- test_router_agent.py
++-- test_faq_agent.py
++-- test_analysis_agent.py
++-- test_summary_agent.py
 ```
+
+---
+
+## Screenshots
+
+### Chat UI — FAQ Route
+
+![FinSight AI chat UI showing a FAQ response about P/E ratio, with the agent path Guardrail → Router → FAQ → Summary highlighted](images/FAQ_router.png)
+
+### Chat UI — Guardrail Blocked
+
+![FinSight AI blocking a prompt-injection attempt with the safety guardrail, showing "BLOCKED" status](images/Graudrail_blocked.png)
+
+### ADK Web Playground — FAQ in Action
+
+![ADK Web Playground trace for the "What is market Cap?" query showing state keys (guardrail_result, route_decision, faq_result) and the agent graph](images/plaground_faq.png)
 
 ---
 
@@ -320,7 +397,7 @@ tests/
 |------|---------|
 | Company Analysis | `Analyse Apple (AAPL) stock` |
 | Company Analysis | `Show me Microsoft (MSFT) financials` |
-| Company Analysis | `What is Tesla's revenue?` |
+| Company Analysis | `What is Tesla''s revenue?` |
 | Finance FAQ | `What is a P/E ratio?` |
 | Finance FAQ | `Explain EBITDA` |
 | Finance FAQ | `How does market capitalisation work?` |
@@ -332,6 +409,14 @@ tests/
 > FinSight AI provides financial information **for informational purposes only**.  
 > It does **not** constitute investment advice, and no content should be relied upon for making investment decisions.  
 > Always consult a qualified financial advisor before making investment decisions.
+
+---
+
+## Future Enhancement – Expert Marketplace (PRODUCT VISION)
+
+FinSight AI could be extended with a marketplace where users schedule consultations with verified financial advisors. Before the consultation, the platform would automatically generate a structured research brief containing financial statements, market news, valuation metrics, and AI-generated insights. This allows advisors to spend less time gathering information and more time discussing strategy with the client.
+
+> **Note:** This functionality is a conceptual extension and is not implemented in the current prototype.
 
 ---
 

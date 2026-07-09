@@ -18,12 +18,15 @@ Financial Dataset MCP (financialdatasets):
                     financial metrics, earnings
 
 Both toolsets are bound exclusively to AnalysisAgent.
+
+NOTE: MCPToolset (PascalCase capital C) is deprecated in ADK ≥ 1.x.
+      Use McpToolset (lowercase 'p') — the new BaseToolset-based API.
 """
 
 import logging
 
 from google.adk.tools.mcp_tool.mcp_toolset import (
-    MCPToolset,
+    McpToolset,
     StreamableHTTPConnectionParams,
 )
 
@@ -40,7 +43,7 @@ log = logging.getLogger(__name__)
 _AV_REMOTE_BASE_URL = "https://mcp.alphavantage.co/mcp"
 
 
-def build_alpha_vantage_toolset() -> MCPToolset:
+def build_alpha_vantage_toolset() -> McpToolset:
     """
     Connect to the official Alpha Vantage remote MCP server.
     The API key is appended as a URL query-parameter at runtime —
@@ -56,7 +59,7 @@ def build_alpha_vantage_toolset() -> MCPToolset:
     )
 
     log.info("Alpha Vantage MCP: remote endpoint %s", _AV_REMOTE_BASE_URL)
-    return MCPToolset(connection_params=connection_params)
+    return McpToolset(connection_params=connection_params)
 
 
 # ── Financial Dataset remote MCP endpoint ────────────────────────────────────
@@ -65,10 +68,10 @@ def build_alpha_vantage_toolset() -> MCPToolset:
 # Auth: API key sent as X-API-KEY HTTP header at runtime.
 # Tools: income statements, balance sheets, cash flow, metrics, earnings.
 #
-_FD_REMOTE_URL = "https://mcp.financialdatasets.ai/"
+_FD_REMOTE_URL = "https://mcp.financialdatasets.ai/mcp"
 
 
-def build_financial_dataset_toolset() -> MCPToolset:
+def build_financial_dataset_toolset() -> McpToolset:
     """
     Connect to the official Financial Datasets remote MCP server.
     The API key is passed as the X-API-KEY HTTP header at runtime —
@@ -92,4 +95,4 @@ def build_financial_dataset_toolset() -> MCPToolset:
     )
 
     log.info("Financial Dataset MCP: remote endpoint %s", _FD_REMOTE_URL)
-    return MCPToolset(connection_params=connection_params)
+    return McpToolset(connection_params=connection_params)
