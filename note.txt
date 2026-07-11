@@ -1,0 +1,86 @@
+
+-------------  COMMANDS / PROMPT GIVEN TO ANTIGRAVITY ------------------
+
+# Scaffold the project
+
+Use ADK 2.0 to scaffold a graph-based multi-agent project named "FinSight AI – Multi-Agent Equity Research Assistant".
+
+Read architecture.md, workflow.md, requirements.md and all prompt files before generating code.
+
+Implement the graph exactly as defined.
+
+Each node must be an independent ADK agent.
+
+Use the corresponding prompt file as each agent's system prompt.
+
+Do not merge or simplify agents.
+
+Use Flask for the web UI.
+
+Read the API key from an environment variable.
+
+Do not hardcode secrets.
+
+
+# Configure Alpha Vantage MCP
+
+Create .agents/mcp_config.json.
+
+Register the Alpha Vantage MCP server using the official remote endpoint.
+
+Read the API key from an environment variable.
+
+Do not hardcode secrets.
+
+Make the MCP tools available to CompanyAnalysisAgent.
+
+
+# Configure Financial Dataset MCP
+
+Update .agents/mcp_config.json.
+
+Register the Financial Dataset MCP server.
+
+Read the API key from an environment variable.
+
+Expose financial statement tools to CompanyAnalysisAgent.
+
+
+
+# Launch the local development playground
+
+
+
+# Testing
+
+Generate pytest tests for:
+
+- Guardrail Agent
+- Router Agent
+- FAQ Agent
+- CompanyAnalysisAgent
+- SummaryAgent
+
+Mock external MCP servers (Alpha Vantage and Financial Dataset) where appropriate.
+
+Do not include Redis tests.
+
+
+#
+Update the UI to display the agent execution path for each query. Highlight only the agents that executed (e.g., Guardrail → Router → FAQ → Summary or Guardrail → Router → Company Analysis → Summary). If Guardrail blocks the request, display Guardrail → Blocked. Do not expose internal prompts or reasoning.
+
+#
+Create a .gitignore file for this project.
+
+I would now like to push all of this to a new repository in my GitHub account. I would like to name this repository FinSightAI-Antigravity-MCP
+
+
+prompt : Launch the local development playground for my agent.
+
+or in the terminal 
+
+adk web agents/   
+
+python app.py
+
+

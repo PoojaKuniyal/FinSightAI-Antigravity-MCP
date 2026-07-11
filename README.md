@@ -39,7 +39,7 @@ Instead of querying multiple APIs and interpreting raw numbers yourself, you ask
 - **Session memory** — Redis-backed conversation history (in-memory fallback when Redis is unavailable)
 
 ---
-## Spec-Driven Development
+## Specification-Driven Design
 
 This project was built spec-first. Before any code was written, the following specification files defined the architecture, agent responsibilities, and behaviour:
 
