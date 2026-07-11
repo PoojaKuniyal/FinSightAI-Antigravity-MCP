@@ -13,7 +13,7 @@
 
 ## Demo
 
-> **[▶ Watch the full demo on Vimeo](https://vimeo.com/1208444587?fl=ip&fe=ec)**
+> **[▶ Watch the full demo on Vimeo](https://vimeo.com/1209108753?share=copy&fl=sv&fe=ci)**
 
 ---
 

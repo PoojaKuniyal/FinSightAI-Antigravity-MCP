@@ -7,11 +7,18 @@ only — never hardcoded.
 
 Alpha Vantage MCP (alphavantage):
   Remote endpoint : https://mcp.alphavantage.co/mcp
-  Auth            : ?apikey=<ALPHA_VANTAGE>  (query-parameter)
+  Transport       : Streamable HTTP  (StreamableHTTPConnectionParams)
+  Auth            : apikey: <ALPHA_VANTAGE>  (HTTP header)
   Env var         : ALPHA_VANTAGE
+  NOTE: The AV server is a Streamable HTTP server (returns application/json).
+        The original 405 was caused by the API key being in the query string
+        (?apikey=...), which the server rejects. Passing it as an HTTP header
+        fixes the 405. Do NOT use SseConnectionParams — the SSE handshake
+        silently fails against this server and registers 0 tools.
 
 Financial Dataset MCP (financialdatasets):
-  Remote endpoint : https://mcp.financialdatasets.ai/
+  Remote endpoint : https://mcp.financialdatasets.ai/mcp
+  Transport       : Streamable HTTP  (StreamableHTTPConnectionParams)
   Auth            : X-API-KEY: <FINANCIAL_DATASET>  (HTTP header)
   Env var         : FINANCIAL_DATASET
   Tools exposed   : income statements, balance sheets, cash flow,
@@ -38,27 +45,38 @@ log = logging.getLogger(__name__)
 # ── Alpha Vantage remote MCP endpoint ────────────────────────────────────────
 #
 # Registered in: .agents/mcp_config.json  →  "alphavantage"
-# Auth: API key appended as ?apikey= query-parameter at runtime.
+# Transport: Streamable HTTP — AV server returns application/json (not SSE).
+# Auth: API key sent as "apikey" HTTP header — NOT as a query-parameter.
+#   (Passing the key as ?apikey= in the query string causes HTTP 405.)
 #
-_AV_REMOTE_BASE_URL = "https://mcp.alphavantage.co/mcp"
+_AV_REMOTE_URL = "https://mcp.alphavantage.co/mcp"
 
 
 def build_alpha_vantage_toolset() -> McpToolset:
     """
     Connect to the official Alpha Vantage remote MCP server.
-    The API key is appended as a URL query-parameter at runtime —
-    read from the ALPHA_VANTAGE environment variable in .env.
-    """
-    url_with_key = f"{_AV_REMOTE_BASE_URL}?apikey={ALPHA_VANTAGE_API_KEY}"
 
+    Transport: StreamableHTTPConnectionParams (Streamable HTTP / JSON-RPC POST).
+    The AV server is NOT an SSE server — using SseConnectionParams silently
+    fails the handshake and registers 0 tools, causing MALFORMED_FUNCTION_CALL.
+
+    Root cause of the original HTTP 405: the API key was appended as a URL
+    query-parameter (?apikey=...). The server rejects that form. Passing the
+    key as the "apikey" HTTP request header resolves it.
+
+    Key read from ALPHA_VANTAGE environment variable in .env.
+    """
     connection_params = StreamableHTTPConnectionParams(
-        url=url_with_key,
-        headers={"Accept": "application/json, text/event-stream"},
+        url=_AV_REMOTE_URL,
+        headers={
+            "apikey": ALPHA_VANTAGE_API_KEY,
+            "Accept": "application/json, text/event-stream",
+        },
         timeout=60.0,
-        sse_read_timeout=120.0,
+        sse_read_timeout=300.0,
     )
 
-    log.info("Alpha Vantage MCP: remote endpoint %s", _AV_REMOTE_BASE_URL)
+    log.info("Alpha Vantage MCP: Streamable HTTP endpoint %s", _AV_REMOTE_URL)
     return McpToolset(connection_params=connection_params)
 
 
