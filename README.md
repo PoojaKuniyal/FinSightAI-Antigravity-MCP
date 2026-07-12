@@ -385,6 +385,11 @@ tests/
 
 ![FinSight AI blocking a prompt-injection attempt with the safety guardrail, showing "BLOCKED" status](images/Graudrail_blocked.png)
 
+### ADK Web Playground — Company Analyses in Action
+
+![ADK Web Playground trace for the "Screen for technology stocks with a P/E ratio under 20 and revenue over $1 billion?"](images/CompanyAnalyses.png)
+
+
 ### ADK Web Playground — FAQ in Action
 
 ![ADK Web Playground trace for the "What is market Cap?" query showing state keys (guardrail_result, route_decision, faq_result) and the agent graph](images/plaground_faq.png)
