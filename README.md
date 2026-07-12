@@ -63,7 +63,7 @@ This is not a shortcut — writing precise, unambiguous specs that an AI agent c
 
 ## Specification-Driven Design
 
-This project was built spec-first. Before any code was written, the following specification files defined the architecture, agent responsibilities, and behaviour:
+Before generating the initial implementation, the project's architecture, workflow, agent responsibilities, and prompt behaviour were documented as Markdown specifications. These specifications guided the application scaffold and served as the design blueprint for the system.
 
 | Spec File | Purpose |
 |-----------|---------|
@@ -76,7 +76,7 @@ This project was built spec-first. Before any code was written, the following sp
 | [`prompts/analysis.md`](prompts/analysis.md) | System prompt for the Company Analysis Agent |
 | [`prompts/summary.md`](prompts/summary.md) | System prompt for the Summary Agent |
 
-The implementation follows these specs directly — each agent has a single responsibility as required, the pipeline matches the workflow exactly, and all prompt behaviours are defined in the `prompts/` directory rather than hardcoded in Python.
+The initial implementation was scaffolded from these specifications and then refined with custom integrations, prompt engineering, and application logic. Each agent has a single responsibility, the execution pipeline follows the documented workflow, and agent behaviour is defined in the `prompts/` directory rather than being hardcoded in Python.
 
 ---
 
@@ -184,6 +184,28 @@ The implementation follows these specs directly — each agent has a single resp
 | **Data Sources** | Alpha Vantage MCP · Financial Datasets MCP |
 | **Protocol** | Model Context Protocol (MCP) over Streamable HTTP |
 | **Frontend** | Vanilla HTML / CSS / JavaScript |
+
+---
+
+
+## Screenshots
+
+### Chat UI — FAQ Route
+
+![FinSight AI chat UI showing a FAQ response about P/E ratio, with the agent path Guardrail → Router → FAQ → Summary highlighted](images/FAQ_router.png)
+
+### Chat UI — Guardrail Blocked
+
+![FinSight AI blocking a prompt-injection attempt with the safety guardrail, showing "BLOCKED" status](images/Graudrail_blocked.png)
+
+### ADK Web Playground — Company Analyses in Action
+
+![ADK Web Playground trace for the "Screen for technology stocks with a P/E ratio under 20 and revenue over $1 billion?"](images/CompanyAnalyses.png)
+
+
+### ADK Web Playground — FAQ in Action
+
+![ADK Web Playground trace for the "What is market Cap?" query showing state keys (guardrail_result, route_decision, faq_result) and the agent graph](images/plaground_faq.png)
 
 ---
 
@@ -333,34 +355,6 @@ adk web .
 # Or point directly at the agents directory
 adk web agents/
 ```
-
----
-
-## API Reference
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/` | Serve the chat UI |
-| `POST` | `/api/chat` | Run the ADK pipeline on a user message |
-| `GET` | `/api/history` | Return chat history for the current session |
-| `POST` | `/api/clear` | Clear chat history for the current session |
-| `GET` | `/api/status` | Health check (Redis, API keys, pipeline) |
-
-### POST /api/chat
-
-**Request:**
-```json
-{ "message": "Analyse Apple (AAPL) stock" }
-```
-
-**Response:**
-```json
-{
-  "session_id": "uuid-string",
-  "response": "## Apple Inc. (AAPL) — Company Analysis\n..."
-}
-```
-
 ---
 
 ## MCP Servers
@@ -397,21 +391,6 @@ tests/
 
 ---
 
-## Screenshots
-
-### Chat UI — FAQ Route
-
-![FinSight AI chat UI showing a FAQ response about P/E ratio, with the agent path Guardrail → Router → FAQ → Summary highlighted](images/FAQ_router.png)
-
-### Chat UI — Guardrail Blocked
-
-![FinSight AI blocking a prompt-injection attempt with the safety guardrail, showing "BLOCKED" status](images/Graudrail_blocked.png)
-
-### ADK Web Playground — FAQ in Action
-
-![ADK Web Playground trace for the "What is market Cap?" query showing state keys (guardrail_result, route_decision, faq_result) and the agent graph](images/plaground_faq.png)
-
----
 
 ## Example Queries
 
